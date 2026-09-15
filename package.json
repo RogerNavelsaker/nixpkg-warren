@@ -1,0 +1,20 @@
+{
+  "name": "@os-eco/warren-cli-nix",
+  "type": "module",
+  "version": "0.4.1",
+  "description": "Nix packaging scaffold for @os-eco/warren-cli",
+  "license": "MIT",
+  "scripts": {
+    "show-manifest": "bun --eval \"console.log(await Bun.file('nix/package-manifest.json').text())\"",
+    "sync:source": "bun run sync:npm-source",
+    "sync:manifest": "bun run sync:npm-source",
+    "sync:npm-source": "bun run scripts/sync-from-npm.ts",
+    "postinstall": "bun x bun2nix -o bun.nix"
+  },
+  "dependencies": {
+    "@os-eco/warren-cli": "0.19.1"
+  },
+  "devDependencies": {
+    "bun2nix": "2.0.8"
+  }
+}

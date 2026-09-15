@@ -1,0 +1,26 @@
+{
+  "stubbed": false,
+  "package": {
+    "repo": "warren",
+    "npmName": "@os-eco/warren-cli",
+    "version": "0.19.1",
+    "packageRevision": 1
+  },
+  "binary": {
+    "name": "warren",
+    "upstreamName": "warren",
+    "entrypoint": "src/cli/main.ts",
+    "aliases": [
+      "wr"
+    ]
+  },
+  "meta": {
+    "description": "Self-hosted infrastructure for coding-agent workloads",
+    "homepage": "https://github.com/jayminwest/warren",
+    "licenseSpdx": "MIT"
+  },
+  "dist": {
+    "url": "https://registry.npmjs.org/@os-eco/plot-cli/-/plot-cli-0.4.1.tgz",
+    "hash": "sha512-xz5XspzS+pOyP4pvgeickX15OVFhfBSDZhNRcboRjvWor+CK2WblThmu+0J0ejyVpAoQxNbMqpn7TAP04E9ESQ=="
+  }
+}
