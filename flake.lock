@@ -23,26 +23,6 @@
         "type": "github"
       }
     },
-    "claude-code": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1790672951,
-        "narHash": "sha256-IeWoCEpHKWzf8u3LYXOxnGaM5QJr7T8wUUS+dvBJq30=",
-        "owner": "RogerNavelsaker",
-        "repo": "nixpkg-claude-code",
-        "rev": "6a4a92391c11278cf391bfa7846db4ee2a1c0d43",
-        "type": "github"
-      },
-      "original": {
-        "owner": "RogerNavelsaker",
-        "repo": "nixpkg-claude-code",
-        "type": "github"
-      }
-    },
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": [
@@ -129,7 +109,6 @@
     "root": {
       "inputs": {
         "bun2nix": "bun2nix",
-        "claude-code": "claude-code",
         "mulch": "mulch",
         "nixpkgs": "nixpkgs",
         "pi-coding-agent": "pi-coding-agent",

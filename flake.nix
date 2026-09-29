@@ -36,9 +36,6 @@
     trellis.url = "github:RogerNavelsaker/nixpkg-trellis";
     trellis.inputs.nixpkgs.follows = "nixpkgs";
     trellis.inputs.bun2nix.follows = "bun2nix";
-
-    claude-code.url = "github:RogerNavelsaker/nixpkg-claude-code";
-    claude-code.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs = {
@@ -50,7 +47,6 @@
     mulch,
     terrarium,
     trellis,
-    claude-code,
     ...
   }:
     let
@@ -80,7 +76,6 @@
             mulchPackage = mulch.packages.${pkgs.system}.default.ml;
             terrariumPackage = terrarium.packages.${pkgs.system}.default.tr;
             trellisPackage = trellis.packages.${pkgs.system}.default.tl;
-            claudePackage = claude-code.packages.${pkgs.system}.default;
           };
         in {
           default = warrenPackages.cli;

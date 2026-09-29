@@ -9,19 +9,17 @@
   gnutar,
   gnugrep,
   gzip,
-  git,
+  gitMinimal,
   gh,
   jq,
   cacert,
   tzdata,
   bun,
-  nodejs_22,
   piPackage,
   seedsPackage,
   mulchPackage,
   terrariumPackage,
   trellisPackage,
-  claudePackage ? null,
 }:
 
 let
@@ -37,19 +35,18 @@ let
     gnutar
     gnugrep
     gzip
-    git
+    gitMinimal
     gh
     jq
     cacert
     tzdata
     bun
-    nodejs_22
     piPackage
     seedsPackage
     mulchPackage
     terrariumPackage
     trellisPackage
-  ] ++ lib.optional (claudePackage != null) claudePackage;
+  ];
 
   runtime = buildEnv {
     name = "warren-agent-env";
