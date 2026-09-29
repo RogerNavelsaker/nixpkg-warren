@@ -23,6 +23,26 @@
         "type": "github"
       }
     },
+    "claude-code": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790672951,
+        "narHash": "sha256-IeWoCEpHKWzf8u3LYXOxnGaM5QJr7T8wUUS+dvBJq30=",
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-claude-code",
+        "rev": "6a4a92391c11278cf391bfa7846db4ee2a1c0d43",
+        "type": "github"
+      },
+      "original": {
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-claude-code",
+        "type": "github"
+      }
+    },
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": [
@@ -44,6 +64,29 @@
         "type": "github"
       }
     },
+    "mulch": {
+      "inputs": {
+        "bun2nix": [
+          "bun2nix"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790673003,
+        "narHash": "sha256-lAa1i+LbelQQHGxAwfy119j2krYG7sAvwIoVGcxWbSs=",
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-mulch",
+        "rev": "2c7efdb2df49ff0d7486a802bf5552f9f3ebcdf8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-mulch",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1780243769,
@@ -60,10 +103,62 @@
         "type": "github"
       }
     },
+    "pi-coding-agent": {
+      "inputs": {
+        "bun2nix": [
+          "bun2nix"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790690713,
+        "narHash": "sha256-4a80NFBA7nYuyAyEZNWMS6SoRVC+lFOEmXZ+S8nOD5k=",
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-pi-coding-agent",
+        "rev": "99cd32a786c61bb81216505fd18e1231a9c5c001",
+        "type": "github"
+      },
+      "original": {
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-pi-coding-agent",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "bun2nix": "bun2nix",
-        "nixpkgs": "nixpkgs"
+        "claude-code": "claude-code",
+        "mulch": "mulch",
+        "nixpkgs": "nixpkgs",
+        "pi-coding-agent": "pi-coding-agent",
+        "seeds": "seeds",
+        "terrarium": "terrarium",
+        "trellis": "trellis"
+      }
+    },
+    "seeds": {
+      "inputs": {
+        "bun2nix": [
+          "bun2nix"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790673025,
+        "narHash": "sha256-FwOCQBx9gRkuZLZfZiclMr/mXCqcXm14sRSQoS+Gqdk=",
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-seeds",
+        "rev": "dd72df57812c9127d47f740bdf613714414bf3d7",
+        "type": "github"
+      },
+      "original": {
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-seeds",
+        "type": "github"
       }
     },
     "systems": {
@@ -78,6 +173,29 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
+        "type": "github"
+      }
+    },
+    "terrarium": {
+      "inputs": {
+        "bun2nix": [
+          "bun2nix"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790673031,
+        "narHash": "sha256-wkIISi+SVtrrhzmTUElrXF66vH+6zs4iZ7+4FQo/nKA=",
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-terrarium",
+        "rev": "69078254a40fa22e8f3021d4d77e8088f1d16f0c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-terrarium",
         "type": "github"
       }
     },
@@ -99,6 +217,29 @@
       "original": {
         "owner": "numtide",
         "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "trellis": {
+      "inputs": {
+        "bun2nix": [
+          "bun2nix"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1790673045,
+        "narHash": "sha256-ytTV3/kbPx7PcCWPh8JWmUoc5V+7jyrPVGMcAy0c7Zg=",
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-trellis",
+        "rev": "f925a41135dbc6d719a7ccc7532cbc421a206c81",
+        "type": "github"
+      },
+      "original": {
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-trellis",
         "type": "github"
       }
     }

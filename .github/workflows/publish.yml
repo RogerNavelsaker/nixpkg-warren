@@ -34,13 +34,22 @@ jobs:
         run: |
           nix build .#dockerImage --out-link /tmp/warren-image
 
-      - name: Load and inspect image
+      - name: Build Warren agent image
+        run: |
+          nix build .#agentImage --out-link /tmp/warren-agent-image
+
+      - name: Load and inspect Warren image
         run: |
           docker load --input /tmp/warren-image
           docker image inspect --format '{{ json .Config.ExposedPorts }}' warren:0.19.2-r1
 
-      - name: Generate image tags
-        id: meta
+      - name: Load and inspect Warren agent image
+        run: |
+          docker load --input /tmp/warren-agent-image
+          docker run --rm warren-agent:latest pi --version
+
+      - name: Generate Warren image tags
+        id: meta-warren
         uses: docker/metadata-action@v5
         with:
           images: |
@@ -54,6 +63,20 @@ jobs:
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=0.19.2
 
+      - name: Generate Warren agent image tags
+        id: meta-agent
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/rogernavelsaker/warren-agent
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
@@ -62,13 +85,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish image tags
+      - name: Publish Warren image tags
         if: github.event_name != 'pull_request'
         env:
-          TAGS: ${{ steps.meta.outputs.tags }}
+          TAGS: ${{ steps.meta-warren.outputs.tags }}
         run: |
           while IFS= read -r tag; do
             [ -n "$tag" ] || continue
             docker tag warren:0.19.2-r1 "$tag"
+            docker push "$tag"
+          done <<< "$TAGS"
+
+      - name: Publish Warren agent image tags
+        if: github.event_name != 'pull_request'
+        env:
+          TAGS: ${{ steps.meta-agent.outputs.tags }}
+        run: |
+          while IFS= read -r tag; do
+            [ -n "$tag" ] || continue
+            docker tag warren-agent:latest "$tag"
             docker push "$tag"
           done <<< "$TAGS"
