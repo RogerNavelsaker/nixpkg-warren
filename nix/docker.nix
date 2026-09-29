@@ -5,6 +5,7 @@
   git,
   cacert,
   tzdata,
+  docker-client,
 }:
 
 let
@@ -22,6 +23,7 @@ dockerTools.buildLayeredImage {
   contents = [
     server
     git
+    docker-client
     cacert
     tzdata
     etcUsers
