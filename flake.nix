@@ -1,5 +1,5 @@
 {
-  description = "Nix packaging scaffold for @os-eco/warren-cli";
+  description = "Nix packaging scaffold for Warren (CLI, Server, and Docker Image)";
 
   nixConfig = {
     extra-substituters = [
@@ -18,7 +18,7 @@
     bun2nix.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { nixpkgs, bun2nix, ... }:
+  outputs = { self, nixpkgs, bun2nix, ... }:
     let
       systems = [
         "x86_64-linux"
@@ -33,8 +33,33 @@
         };
       });
     in {
-      packages = forAllSystems ({ pkgs }: {
-        default = pkgs.callPackage ./nix/package.nix { };
+      packages = forAllSystems ({ pkgs }:
+        let
+          warrenPackages = pkgs.callPackage ./nix/package.nix { };
+          dockerImage = pkgs.callPackage ./nix/docker.nix {
+            inherit (warrenPackages) server;
+          };
+        in {
+          default = warrenPackages.cli;
+          cli = warrenPackages.cli;
+          server = warrenPackages.server;
+          dockerImage = dockerImage;
+        }
+      );
+
+      apps = forAllSystems ({ pkgs }: {
+        default = {
+          type = "app";
+          program = "${self.packages.${pkgs.system}.cli}/bin/warren";
+        };
+        cli = {
+          type = "app";
+          program = "${self.packages.${pkgs.system}.cli}/bin/warren";
+        };
+        server = {
+          type = "app";
+          program = "${self.packages.${pkgs.system}.server}/bin/warren-server";
+        };
       });
 
       devShells = forAllSystems ({ pkgs }: {
@@ -44,6 +69,7 @@
             bun2nix
             jq
             nixfmt-rfc-style
+            skopeo
           ];
         };
       });
