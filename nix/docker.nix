@@ -39,8 +39,6 @@ dockerTools.buildLayeredImage {
       "HOME=/data"
       "WARREN_DATA_DIR=/data"
       "SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt"
-      "WARREN_SUPERVISOR_BUN=bun"
-      "WARREN_SERVER_ENTRY=${server}/lib/warren/src/server/main/index.ts"
     ];
     Volumes = {
       "/data" = { };
