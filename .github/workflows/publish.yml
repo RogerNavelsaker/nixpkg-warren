@@ -47,7 +47,8 @@ jobs:
       - name: Load and inspect Warren image
         run: |
           docker load --input /tmp/warren-image
-          docker image inspect --format '{{ json .Config.ExposedPorts }}' warren:0.19.2-r1
+          image_tag="$(jq -r '.package as $p | $p.version + (if $p.packageRevision == null then "" else "-r\($p.packageRevision)" end)' nix/package-manifest.json)"
+          docker image inspect --format '{{ json .Config.ExposedPorts }}' "warren:$image_tag"
 
       - name: Load and inspect Warren agent image
         run: |
