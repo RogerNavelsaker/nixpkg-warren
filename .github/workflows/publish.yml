@@ -45,9 +45,11 @@ jobs:
           nix build .#agentImage --out-link /tmp/warren-agent-image
 
       - name: Load and inspect Warren image
+        id: warren-image
         run: |
           docker load --input /tmp/warren-image
           image_tag="$(jq -r '.package as $p | $p.version + (if $p.packageRevision == null then "" else "-r\($p.packageRevision)" end)' nix/package-manifest.json)"
+          echo "tag=$image_tag" >> "$GITHUB_OUTPUT"
           docker image inspect --format '{{ json .Config.ExposedPorts }}' "warren:$image_tag"
 
       - name: Load and inspect Warren agent image
@@ -69,6 +71,7 @@ jobs:
             type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=0.19.2
+            type=raw,value=${{ steps.warren-image.outputs.tag }}
 
       - name: Generate Warren agent image tags
         id: meta-agent
@@ -96,10 +99,11 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           TAGS: ${{ steps.meta-warren.outputs.tags }}
+          WARREN_IMAGE_TAG: ${{ steps.warren-image.outputs.tag }}
         run: |
           while IFS= read -r tag; do
             [ -n "$tag" ] || continue
-            docker tag warren:0.19.2-r1 "$tag"
+            docker tag "warren:$WARREN_IMAGE_TAG" "$tag"
             docker push "$tag"
           done <<< "$TAGS"
 
