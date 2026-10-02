@@ -107,12 +107,12 @@
 
       devShells = forAllSystems ({ pkgs }: {
         default = pkgs.mkShell {
-          packages = with pkgs; [
-            bun
-            bun2nix
-            jq
-            nixfmt-rfc-style
-            skopeo
+          packages = [
+            pkgs.bun
+            pkgs.bun2nix
+            pkgs.jq
+            pkgs.nixfmt-rfc-style
+            pkgs.skopeo
           ];
         };
       });

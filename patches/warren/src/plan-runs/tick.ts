@@ -1,0 +1,287 @@
+/**
+ * PlanRun coordinator tick loop (pl-a258 step 5 / warren-2623).
+ *
+ * `runPlanRunTick` lists every active (queued/running) PlanRun and calls
+ * `advancePlanRun` on each. Per-PlanRun errors are caught so one bad row
+ * can't tear down the whole tick (mirrors `runProjectTick` in
+ * src/triggers/tick.ts — pl-2f15 risk #9).
+ *
+ * `bootPlanRunCoordinator` schedules `runPlanRunTick` on a recurring
+ * interval and wraps it in the same single-flight guard `bootScheduler`
+ * uses: a tick already in flight when the next interval fires is dropped,
+ * so a slow tick degrades effective cadence but never duplicates work.
+ *
+ * Env contract (see ./config.ts):
+ *   WARREN_PLAN_RUN_TICK_MS     interval in ms — default 10_000 (10s).
+ *                                Faster than the cron scheduler (60s) because
+ *                                plan progression is the operator's
+ *                                interactive loop — they want a child to
+ *                                dispatch within seconds of the previous
+ *                                merge, not a minute.
+ *   WARREN_PLAN_RUN_DISABLED    disable the coordinator entirely — same
+ *                                truthy set as WARREN_SCHEDULER_DISABLED.
+ */
+
+import { formatError } from "../core/errors.ts";
+import type { Repos } from "../db/repos/index.ts";
+import type { PlanRunRow } from "../db/schema.ts";
+import type { PrMergeChecker } from "../runs/pr-merge.ts";
+import { withAutomaticRunAdmission } from "../triggers/automatic-capacity.ts";
+import {
+	type AdvanceResult,
+	advancePlanRun,
+	type CoordinatorCloseChildSeedFn,
+	type CoordinatorEmitFn,
+	type CoordinatorGetIssueFn,
+	type CoordinatorReopenPrFn,
+	type CoordinatorRepos,
+	type CoordinatorSpawnFn,
+	type PlanRunEventKind,
+} from "./coordinator.ts";
+import type { MergeStallProbe } from "./merge-stall.ts";
+
+export interface PlanRunTickLogger {
+	info(obj: Record<string, unknown>, msg?: string): void;
+	warn(obj: Record<string, unknown>, msg?: string): void;
+	error(obj: Record<string, unknown>, msg?: string): void;
+}
+
+export interface PlanRunTickDeps {
+	readonly repos: Pick<Repos, "planRuns" | "runs" | "events">;
+	readonly getIssue: CoordinatorGetIssueFn;
+	readonly checkPrMerged: PrMergeChecker;
+	readonly spawn: CoordinatorSpawnFn;
+	readonly now?: () => Date;
+	readonly logger?: PlanRunTickLogger;
+	/** Test seam — defaults to {@link defaultEmit} writing to events table. */
+	readonly emit?: CoordinatorEmitFn;
+	/**
+	 * Bounded wall-clock merge-wait budget (ms) forwarded to
+	 * {@link advancePlanRun} (warren-3937). Omit to use the coordinator
+	 * default ({@link DEFAULT_MERGE_TIMEOUT_MS}); 0 disables the timeout.
+	 */
+	readonly mergeTimeoutMs?: number;
+	/**
+	 * Stall-warning grace period (ms) forwarded to {@link advancePlanRun}
+	 * (pl-92a3 step 7). Omit to use the default
+	 * ({@link DEFAULT_PLAN_RUN_MERGE_STALLED_WARNING_MS}); 0 disables the warning.
+	 */
+	readonly mergeStallWarningMs?: number;
+	/**
+	 * Best-effort merge-stall probe (pl-92a3 step 7): reads the PR's
+	 * auto-merge state and check rollup once the grace period has elapsed.
+	 * Omit to leave the stall warning unwired (tests).
+	 */
+	readonly probeMergeStall?: MergeStallProbe;
+	/**
+	 * Optional PR-(re)open seam (warren-22de). When provided, the
+	 * coordinator attempts to reopen a missing PR before failing terminally
+	 * on a child that succeeded with no prUrl and no empty-push event.
+	 */
+	readonly reopenPr?: CoordinatorReopenPrFn;
+	/**
+	 * Optional host-side child-seed close seam (warren-3806). When provided,
+	 * the coordinator closes a plan-run child's seed on the project's default
+	 * branch the instant the child transitions to `merged`, so seed closure
+	 * never depends on agent initiative. Omit to leave it unwired (tests).
+	 */
+	readonly closeChildSeed?: CoordinatorCloseChildSeedFn;
+}
+
+export interface PlanRunAdvanceLog {
+	readonly planRunId: string;
+	readonly result: AdvanceResult;
+}
+
+export interface PlanRunTickResult {
+	readonly advances: readonly PlanRunAdvanceLog[];
+	readonly errors: readonly { readonly planRunId: string; readonly reason: string }[];
+}
+
+export async function runPlanRunTick(deps: PlanRunTickDeps): Promise<PlanRunTickResult> {
+	const advances: PlanRunAdvanceLog[] = [];
+	const errors: { planRunId: string; reason: string }[] = [];
+	const emit = deps.emit ?? buildDefaultPlanRunEmit(deps.repos as CoordinatorRepos, deps.now);
+	const admissionNow = deps.now?.() ?? new Date();
+
+	const active: PlanRunRow[] = await deps.repos.planRuns.listActive();
+	for (const planRun of active) {
+		// Child completion is persisted on the run row; defer coordinator
+		// polling until the automatic child finishes, then resume next tick.
+		try {
+			const admission = await withAutomaticRunAdmission(
+				deps.repos.runs,
+				() => advancePlanRun(buildAdvanceInput(deps, planRun, emit)),
+				admissionNow,
+			);
+			if (!admission.admitted) break;
+			const result = admission.value;
+			advances.push({ planRunId: planRun.id, result });
+			logAdvance(deps.logger, planRun.id, result);
+		} catch (err) {
+			const reason = formatError(err);
+			errors.push({ planRunId: planRun.id, reason });
+			deps.logger?.error({ planRunId: planRun.id, reason }, "plan_run.advance_failed");
+		}
+	}
+
+	return { advances, errors };
+}
+
+/**
+ * Assemble the per-PlanRun {@link advancePlanRun} input, threading only the
+ * optional seams that were actually wired (only-if-present spreads). Extracted
+ * from {@link runPlanRunTick} so the tick body stays under the cognitive-
+ * complexity ceiling (warren-d3a6 / warren-3806).
+ */
+function buildAdvanceInput(
+	deps: PlanRunTickDeps,
+	planRun: PlanRunRow,
+	emit: CoordinatorEmitFn,
+): Parameters<typeof advancePlanRun>[0] {
+	return {
+		planRun,
+		repos: deps.repos as CoordinatorRepos,
+		getIssue: deps.getIssue,
+		checkPrMerged: deps.checkPrMerged,
+		spawn: deps.spawn,
+		emit,
+		...(deps.mergeTimeoutMs !== undefined ? { mergeTimeoutMs: deps.mergeTimeoutMs } : {}),
+		...(deps.mergeStallWarningMs !== undefined
+			? { mergeStallWarningMs: deps.mergeStallWarningMs }
+			: {}),
+		...(deps.probeMergeStall !== undefined ? { probeMergeStall: deps.probeMergeStall } : {}),
+		...(deps.reopenPr !== undefined ? { reopenPr: deps.reopenPr } : {}),
+		...(deps.closeChildSeed !== undefined ? { closeChildSeed: deps.closeChildSeed } : {}),
+		...(deps.now !== undefined ? { now: deps.now } : {}),
+	};
+}
+
+function logAdvance(
+	logger: PlanRunTickLogger | undefined,
+	planRunId: string,
+	result: AdvanceResult,
+): void {
+	if (logger === undefined) return;
+	if (result.kind === "plan_failed") {
+		logger.warn(
+			{ planRunId, failedSeq: result.failedSeq, reason: result.reason },
+			"plan_run.failed",
+		);
+		return;
+	}
+	if (result.kind === "noop") {
+		logger.warn({ planRunId, reason: result.reason }, "plan_run.noop");
+		return;
+	}
+	logger.info({ planRunId, kind: result.kind }, "plan_run.advanced");
+}
+
+/**
+ * Default emit: append a `plan_run.*` system event onto the target child
+ * run's events stream (mx-c88f10 / scheduler.trigger.*). Best-effort —
+ * a write failure is logged via the coordinator's own try/catch and the
+ * tick continues.
+ */
+export function buildDefaultPlanRunEmit(
+	repos: CoordinatorRepos,
+	now?: () => Date,
+): CoordinatorEmitFn {
+	return async (runId: string, kind: PlanRunEventKind, payload: Record<string, unknown>) => {
+		const seq = ((await repos.events.maxSeqForRun(runId)) ?? 0) + 1;
+		const ts = (now?.() ?? new Date()).toISOString();
+		await repos.events.append({
+			runId,
+			sandboxEventSeq: seq,
+			ts,
+			kind,
+			stream: "system",
+			payload,
+		});
+	};
+}
+
+/* ----------------------------------------------------------------------- */
+/* Single-flight wrapper                                                    */
+/* ----------------------------------------------------------------------- */
+
+export type PlanRunCoordinatorTimerHandle = object;
+
+export interface BootPlanRunCoordinatorInput extends PlanRunTickDeps {
+	readonly tickMs: number;
+	readonly disabled?: boolean;
+	readonly setInterval?: (cb: () => void, ms: number) => PlanRunCoordinatorTimerHandle;
+	readonly clearInterval?: (handle: PlanRunCoordinatorTimerHandle) => void;
+}
+
+export interface PlanRunCoordinatorHandle {
+	stop(): Promise<void>;
+	/** Test seam — fire one tick synchronously, awaiting completion. */
+	runOnce(): Promise<PlanRunTickResult | null>;
+	/** Diagnostic surface — number of ticks completed (success or skip). */
+	tickCount(): number;
+}
+
+const NOOP_HANDLE = Symbol(
+	"plan-run-coordinator-noop-handle",
+) as unknown as PlanRunCoordinatorTimerHandle;
+
+/**
+ * Boot the recurring PlanRun tick. Single-flight wrapper drops overlapping
+ * ticks instead of stacking them — mirrors `bootScheduler` so the
+ * lifecycle semantics are identical for operators reading logs.
+ */
+export function bootPlanRunCoordinator(
+	input: BootPlanRunCoordinatorInput,
+): PlanRunCoordinatorHandle {
+	const setIntervalFn: (cb: () => void, ms: number) => PlanRunCoordinatorTimerHandle =
+		input.setInterval ??
+		((cb, ms) => globalThis.setInterval(cb, ms) as PlanRunCoordinatorTimerHandle);
+	const clearIntervalFn: (handle: PlanRunCoordinatorTimerHandle) => void =
+		input.clearInterval ?? ((handle) => globalThis.clearInterval(handle as never));
+
+	let inFlight: Promise<PlanRunTickResult | null> | null = null;
+	let ticks = 0;
+	let stopped = false;
+
+	const fire = async (): Promise<PlanRunTickResult | null> => {
+		if (stopped) return null;
+		if (inFlight !== null) {
+			input.logger?.info({}, "plan_run.tick_skipped");
+			return null;
+		}
+		const promise = (async () => {
+			try {
+				const result = await runPlanRunTick(input);
+				ticks += 1;
+				return result;
+			} catch (err) {
+				input.logger?.error({ reason: formatError(err) }, "plan_run.tick_failed");
+				return null;
+			} finally {
+				inFlight = null;
+			}
+		})();
+		inFlight = promise;
+		return promise;
+	};
+
+	const handle: PlanRunCoordinatorTimerHandle =
+		input.disabled === true ? NOOP_HANDLE : setIntervalFn(() => void fire(), input.tickMs);
+
+	return {
+		async stop() {
+			stopped = true;
+			if (handle !== NOOP_HANDLE) clearIntervalFn(handle);
+			if (inFlight !== null) {
+				try {
+					await inFlight;
+				} catch {
+					// already logged in fire()
+				}
+			}
+		},
+		runOnce: fire,
+		tickCount: () => ticks,
+	};
+}

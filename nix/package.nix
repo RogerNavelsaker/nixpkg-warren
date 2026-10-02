@@ -45,6 +45,7 @@ EOF
     fileset = lib.fileset.unions [
       ../package.json
       ../bun.lock
+      ../patches/warren
     ];
   };
 
@@ -96,6 +97,7 @@ EOF
     installPhase = ''
       runHook preInstall
       mkdir -p $out/lib/warren $out/bin
+      cp -R patches/warren/src/. node_modules/${manifest.package.npmName}/src/
       cp -r node_modules $out/lib/warren/
 
       makeWrapper ${bun}/bin/bun $out/bin/warren-server \
