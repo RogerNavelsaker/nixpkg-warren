@@ -8,6 +8,7 @@
   makeWrapper,
   bun,
   git,
+  sd,
   cacert,
   docker-client,
 }:
@@ -101,14 +102,14 @@ EOF
       cp -r node_modules $out/lib/warren/
 
       makeWrapper ${bun}/bin/bun $out/bin/warren-server \
-        --prefix PATH : ${lib.makeBinPath [ bun git docker-client cacert ]} \
+        --prefix PATH : ${lib.makeBinPath [ bun git sd docker-client cacert ]} \
         --set-default SSL_CERT_FILE "${cacert}/etc/ssl/certs/ca-bundle.crt" \
         --add-flags "run" \
         --add-flags "$out/lib/warren/node_modules/@os-eco/warren-cli/src/supervisor/main.ts" \
         --chdir "$out/lib/warren/node_modules/@os-eco/warren-cli"
 
       makeWrapper ${bun}/bin/bun $out/bin/warren-daemon \
-        --prefix PATH : ${lib.makeBinPath [ bun git docker-client cacert ]} \
+        --prefix PATH : ${lib.makeBinPath [ bun git sd docker-client cacert ]} \
         --set-default SSL_CERT_FILE "${cacert}/etc/ssl/certs/ca-bundle.crt" \
         --add-flags "run" \
         --add-flags "$out/lib/warren/node_modules/@os-eco/warren-cli/src/server/main/index.ts" \

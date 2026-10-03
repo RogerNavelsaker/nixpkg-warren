@@ -3,6 +3,7 @@
   dockerTools,
   server,
   git,
+  sd,
   cacert,
   tzdata,
   docker-client,
@@ -23,6 +24,7 @@ dockerTools.buildLayeredImage {
   contents = [
     server
     git
+    sd
     docker-client
     cacert
     tzdata
