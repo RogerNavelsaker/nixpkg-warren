@@ -70,9 +70,13 @@
     in {
       packages = forAllSystems ({ pkgs }:
         let
-          warrenPackages = pkgs.callPackage ./nix/package.nix { };
+          seedsCli = seeds.packages.${pkgs.system}.default.sd;
+          warrenPackages = pkgs.callPackage ./nix/package.nix {
+            sd = seedsCli;
+          };
           dockerImage = pkgs.callPackage ./nix/docker.nix {
             inherit (warrenPackages) server;
+            sd = seedsCli;
           };
           agentImage = pkgs.callPackage ./nix/agent-docker.nix {
             piPackage = pi-coding-agent.packages.${pkgs.system}.default.pi;
