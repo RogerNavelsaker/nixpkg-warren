@@ -334,6 +334,8 @@ const CronTriggerSchema = z
 		cron: CronExpressionSchema,
 		seed: SeedRefSchema.optional(),
 		role: RoleNameSchema,
+		actionRole: RoleNameSchema.optional(),
+		actionModel: z.string().min(1).optional(),
 		timezone: TimezoneSchema.optional(),
 		prompt: PromptSchema.optional(),
 		maxCostUsd: MaxCostUsdSchema.optional(),
@@ -364,6 +366,8 @@ export type TriggersConfig = z.infer<typeof TriggersConfigSchema>;
 export const DefaultsConfigSchema = z
 	.object({
 		defaultRole: RoleNameSchema.optional(),
+		defaultActionRole: RoleNameSchema.optional(),
+		defaultActionModel: z.string().min(1).optional(),
 		defaultBranch: z.string().min(1, "defaultBranch must be non-empty if provided").optional(),
 		defaultPrompt: PromptSchema.optional(),
 		// warren-618b: free-text provider/model defaults applied at spawn time the
