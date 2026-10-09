@@ -117,7 +117,9 @@ export interface AgentRuntimeAdapter {
 	 * `undefined` declines mid-stream delivery; the message stays queued
 	 * for the next spawn.
 	 */
-	encodeSteeringMessage?(message: SteeringMessage): { stdin: string } | undefined;
+	encodeSteeringMessage?(
+		message: SteeringMessage,
+	): { stdin: string } | undefined;
 
 	/**
 	 * Stdin-hold predicate. When defined, the dispatcher holds the child's
@@ -135,7 +137,9 @@ export interface AgentRuntimeAdapter {
 	 * the canonical use is declining pi's interactive
 	 * `extension_ui_request` RPC so an extensions-enabled run cannot hang.
 	 */
-	autoRespondToEvent?(event: AdapterRuntimeEvent): { stdin: string } | undefined;
+	autoRespondToEvent?(
+		event: AdapterRuntimeEvent,
+	): { stdin: string } | undefined;
 
 	/**
 	 * Pre-spawn workspace hook: materialize the harness's per-run state
@@ -237,6 +241,8 @@ export interface AgentFrontmatter {
 	model?: string;
 	thinking?: string;
 	pi?: PiFrontmatterOptions;
+	/** Mulch experiment arm (`./mulch-arm.ts`); absent = default behavior. */
+	mulch?: "on" | "off";
 }
 
 /**
@@ -263,6 +269,8 @@ export interface AdapterSpawnContext {
 export interface AdapterPrepareContext {
 	readonly runId: string;
 	readonly workspacePath: string;
+	/** Per-run frontmatter (see {@link AgentFrontmatter}); carries the mulch arm. */
+	readonly frontmatter?: AgentFrontmatter;
 }
 
 /** Input to `extractMetadata`. */

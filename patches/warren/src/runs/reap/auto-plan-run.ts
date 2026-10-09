@@ -22,24 +22,33 @@ function coerceBooleanFlag(value: unknown): boolean {
 	return false;
 }
 
-export function hasAutoPlanRunFrontmatter(run: { renderedAgentJson: unknown }): boolean {
+export function hasAutoPlanRunFrontmatter(run: {
+	renderedAgentJson: unknown;
+}): boolean {
 	const json = run.renderedAgentJson;
-	if (json === null || typeof json !== "object" || Array.isArray(json)) return false;
+	if (json === null || typeof json !== "object" || Array.isArray(json))
+		return false;
 	const fm = (json as Record<string, unknown>).frontmatter;
 	if (fm === null || typeof fm !== "object" || Array.isArray(fm)) return false;
 	return coerceBooleanFlag((fm as Record<string, unknown>).auto_plan_run);
 }
 
-function resolveAutoPlanRunAgent(run: { renderedAgentJson: unknown; agentName: string }): string {
+function resolveAutoPlanRunAgent(run: {
+	renderedAgentJson: unknown;
+	agentName: string;
+}): string {
 	const json = run.renderedAgentJson;
 	if (json !== null && typeof json === "object" && !Array.isArray(json)) {
 		const fm = (json as Record<string, unknown>).frontmatter;
 		if (fm !== null && typeof fm === "object" && !Array.isArray(fm)) {
 			const actionRole =
-				(typeof fm.action_role === "string" && fm.action_role.length > 0 ? fm.action_role : undefined) ??
-				(typeof fm.actionRole === "string" && fm.actionRole.length > 0 ? fm.actionRole : undefined);
+				(typeof fm.action_role === "string" && fm.action_role.length > 0
+					? fm.action_role
+					: undefined) ??
+				(typeof fm.actionRole === "string" && fm.actionRole.length > 0
+					? fm.actionRole
+					: undefined);
 			if (actionRole !== undefined) return actionRole;
-
 			const override = readAutoPlanRunAgent(fm as Record<string, unknown>);
 			if (override !== undefined) return override;
 		}
@@ -52,7 +61,8 @@ export function parsePlanIds(body: string): Set<string> {
 	for (const line of splitLines(body)) {
 		try {
 			const raw: unknown = JSON.parse(line);
-			if (raw === null || typeof raw !== "object" || Array.isArray(raw)) continue;
+			if (raw === null || typeof raw !== "object" || Array.isArray(raw))
+				continue;
 			const id = (raw as Record<string, unknown>).id;
 			if (typeof id === "string" && id.length > 0) ids.add(id);
 		} catch {
@@ -66,12 +76,15 @@ export function parsePlanChildren(body: string, planId: string): string[] {
 	for (const line of splitLines(body)) {
 		try {
 			const raw: unknown = JSON.parse(line);
-			if (raw === null || typeof raw !== "object" || Array.isArray(raw)) continue;
+			if (raw === null || typeof raw !== "object" || Array.isArray(raw))
+				continue;
 			const obj = raw as Record<string, unknown>;
 			if (obj.id !== planId) continue;
 			const children = obj.children;
 			if (!Array.isArray(children)) return [];
-			return children.filter((c): c is string => typeof c === "string" && c.length > 0);
+			return children.filter(
+				(c): c is string => typeof c === "string" && c.length > 0,
+			);
 		} catch {
 			// skip unparseable lines
 		}
@@ -114,7 +127,11 @@ export function trackerSupportsAutoPlanRun(tracker: IssueTracker): boolean {
 
 type PlanChildrenValidation =
 	| { readonly ok: true }
-	| { readonly ok: false; readonly reason: string; readonly missing: readonly string[] };
+	| {
+			readonly ok: false;
+			readonly reason: string;
+			readonly missing: readonly string[];
+	  };
 
 /**
  * Mirror the manual handler's child-issue validation (warren-41d5, ported
@@ -135,18 +152,25 @@ async function validatePlanChildren(
 	const probes = await Promise.all(
 		children.map(async (seedId) => {
 			try {
-				const issue = await tracker.getIssue({ projectId, localPath: projectPath }, seedId);
+				const issue = await tracker.getIssue(
+					{ projectId, localPath: projectPath },
+					seedId,
+				);
 				return { status: issue.status, missing: false };
 			} catch (err) {
-				if (err instanceof IssueNotFoundError) return { seedId, status: null, missing: true };
+				if (err instanceof IssueNotFoundError)
+					return { seedId, status: null, missing: true };
 				throw err;
 			}
 		}),
 	);
 	const missing = probes
-		.filter((p): p is { seedId: string; status: null; missing: true } => p.missing)
+		.filter(
+			(p): p is { seedId: string; status: null; missing: true } => p.missing,
+		)
 		.map((p) => p.seedId);
-	if (missing.length > 0) return { ok: false, reason: "missing_child_seeds", missing };
+	if (missing.length > 0)
+		return { ok: false, reason: "missing_child_seeds", missing };
 	if (!probes.some((p) => p.status !== "closed")) {
 		return { ok: false, reason: "all_children_closed", missing: [] };
 	}
@@ -174,7 +198,10 @@ async function dispatchOnePlan(
 ): Promise<string | null> {
 	const children = parsePlanChildren(workspacePlansBody, planId);
 	if (children.length === 0) return null;
-	if (input.issueTracker !== undefined && trackerSupportsAutoPlanRun(input.issueTracker)) {
+	if (
+		input.issueTracker !== undefined &&
+		trackerSupportsAutoPlanRun(input.issueTracker)
+	) {
 		const validation = await validatePlanChildren(
 			input.issueTracker,
 			input.project.id,
@@ -217,14 +244,21 @@ export async function dispatchAutoPlanRuns(
 	input: DispatchAutoPlanRunsInput,
 ): Promise<DispatchAutoPlanRunsResult> {
 	const { workspacePlanIds, baselinePlanIds, workspacePlansBody } = input;
-	if (workspacePlanIds === null || baselinePlanIds === null || workspacePlansBody === null) {
+	if (
+		workspacePlanIds === null ||
+		baselinePlanIds === null ||
+		workspacePlansBody === null
+	) {
 		return { created: false, id: null, planId: null };
 	}
 	// warren-2d98: the plan detection (raw .seeds/plans.jsonl text) is
 	// irreducibly seeds-shaped, so a wired tracker that is not git-native +
 	// plan-capable cannot back the feature at all — fence it off instead of
 	// dispatching against state the tracker can't validate.
-	if (input.issueTracker !== undefined && !trackerSupportsAutoPlanRun(input.issueTracker)) {
+	if (
+		input.issueTracker !== undefined &&
+		!trackerSupportsAutoPlanRun(input.issueTracker)
+	) {
 		return { created: false, id: null, planId: null };
 	}
 	let created = false;
@@ -236,7 +270,11 @@ export async function dispatchAutoPlanRuns(
 	for (const planId of workspacePlanIds) {
 		if (baselinePlanIds.has(planId)) continue;
 		try {
-			const planRunId = await dispatchOnePlan(input, planId, workspacePlansBody);
+			const planRunId = await dispatchOnePlan(
+				input,
+				planId,
+				workspacePlansBody,
+			);
 			if (planRunId !== null) {
 				created = true;
 				id = planRunId;

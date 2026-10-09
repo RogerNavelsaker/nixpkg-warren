@@ -143,8 +143,15 @@ export function buildPiArgv(
 	options?: BuildPiArgvOptions,
 ): string[] {
 	const piOptions = parsePiFrontmatterOptions(frontmatter?.pi);
-	const withExtensions = options?.extensions === true || piOptions.extensions === true;
-	const argv: string[] = [PI_BIN, "--mode", "rpc", "--session-dir", PI_SESSION_DIR];
+	const withExtensions =
+		options?.extensions === true || piOptions.extensions === true;
+	const argv: string[] = [
+		PI_BIN,
+		"--mode",
+		"rpc",
+		"--session-dir",
+		PI_SESSION_DIR,
+	];
 	if (!withExtensions) argv.push("--no-extensions");
 	argv.push("--offline");
 	if (piOptions.approve === true) argv.push("--approve");
@@ -156,11 +163,15 @@ export function buildPiArgv(
 	appendRepeatedOption(argv, "--skill", piOptions.skill);
 	appendRepeatedOption(argv, "--prompt-template", piOptions.promptTemplate);
 	appendRepeatedOption(argv, "--theme", piOptions.theme);
-	argv.push("--provider", nonEmpty(frontmatter?.provider) ?? PI_DEFAULT_PROVIDER);
+	argv.push(
+		"--provider",
+		nonEmpty(frontmatter?.provider) ?? PI_DEFAULT_PROVIDER,
+	);
 	const model = nonEmpty(frontmatter?.model) ?? PI_DEFAULT_MODEL;
 	argv.push("--model", model);
-	if (nonEmpty(frontmatter?.thinking)) {
-		argv.push("--thinking", frontmatter!.thinking!.trim());
+	const thinking = nonEmpty(frontmatter?.thinking);
+	if (thinking !== undefined) {
+		argv.push("--thinking", thinking);
 	}
 	return argv;
 }
@@ -213,12 +224,20 @@ function readStringListOption(value: unknown): readonly string[] {
 		.filter((entry) => entry.length > 0);
 }
 
-function appendCommaOption(argv: string[], flag: string, values: readonly string[]): void {
+function appendCommaOption(
+	argv: string[],
+	flag: string,
+	values: readonly string[],
+): void {
 	if (values.length === 0) return;
 	argv.push(flag, values.join(","));
 }
 
-function appendRepeatedOption(argv: string[], flag: string, values: readonly string[]): void {
+function appendRepeatedOption(
+	argv: string[],
+	flag: string,
+	values: readonly string[],
+): void {
 	for (const value of values) argv.push(flag, value);
 }
 

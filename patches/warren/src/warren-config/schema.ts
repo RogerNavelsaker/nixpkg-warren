@@ -45,9 +45,15 @@ import { parseDurationMs } from "../preview/duration.ts";
 // warren-2b75: one agent-name grammar, owned by the registry and shared
 // here so role names and registry names can never drift apart.
 import { AGENT_NAME_PATTERN } from "../registry/agent-name.ts";
-import { CiFixerConfigSchema, HealerConfigSchema } from "./feature-loop-config.ts";
+import {
+	CiFixerConfigSchema,
+	HealerConfigSchema,
+} from "./feature-loop-config.ts";
 import { PrConfigSchema } from "./pr-config.ts";
-import { AdmissionConfigSchema, ResourcesConfigSchema } from "./resources-config.ts";
+import {
+	AdmissionConfigSchema,
+	ResourcesConfigSchema,
+} from "./resources-config.ts";
 import { TrackerConfigSchema } from "./tracker-config.ts";
 
 // warren-3db0: re-exported so the historical import sites (and
@@ -66,7 +72,11 @@ export {
 	type HealerConfig,
 	HealerConfigSchema,
 } from "./feature-loop-config.ts";
-export { type AutoMergeConfig, type PrConfig, PrConfigSchema } from "./pr-config.ts";
+export {
+	type AutoMergeConfig,
+	type PrConfig,
+	PrConfigSchema,
+} from "./pr-config.ts";
 export {
 	type AdmissionConfig,
 	AdmissionConfigSchema,
@@ -129,7 +139,9 @@ const CronExpressionSchema = z
 		{ message: "cron must have 5 or 6 whitespace-separated fields" },
 	);
 
-const TimezoneSchema = z.string().min(1, "timezone must be non-empty if provided");
+const TimezoneSchema = z
+	.string()
+	.min(1, "timezone must be non-empty if provided");
 
 const PromptSchema = z.string().min(1, "prompt must be non-empty if provided");
 
@@ -146,7 +158,9 @@ const DurationStringSchema = z
 		'duration must be one or more <number><unit> pairs (units: ms, s, m, h, d) — e.g. "30m", "8h", "1h30m"',
 	);
 
-const PreviewCommandSchema = z.string().min(1, "preview.command must be non-empty");
+const PreviewCommandSchema = z
+	.string()
+	.min(1, "preview.command must be non-empty");
 
 // TCP port the preview server binds to inside the sandbox. Privileged ports
 // (1-1023) are accepted because the sandbox runs unprivileged-by-namespace —
@@ -245,7 +259,9 @@ const InteractiveAgentsConfigSchema = z
 	})
 	.strict();
 
-export type InteractiveAgentsConfig = z.infer<typeof InteractiveAgentsConfigSchema>;
+export type InteractiveAgentsConfig = z.infer<
+	typeof InteractiveAgentsConfigSchema
+>;
 
 // warren-fcb7 / docs/design/preview-environments.md (path-mode addendum, pl-f4ea): per-project pin of
 // the preview routing mode. Operator-facing surface is `WARREN_PREVIEW_MODE`
@@ -310,7 +326,10 @@ export type PreviewConfig = z.infer<typeof PreviewConfigSchema>;
 
 // warren-a63d: per-run USD spend cap, shared by the trigger entry and the
 // project-wide default below so both sites can never validate differently.
-const MaxCostUsdSchema = z.number().positive("maxCostUsd must be positive").finite();
+const MaxCostUsdSchema = z
+	.number()
+	.positive("maxCostUsd must be positive")
+	.finite();
 
 // warren-fabb: per-project override of the agent image the container runtimes
 // (DockerProvider + K8sProvider) launch each run in — a Python mirror pins a
@@ -320,7 +339,10 @@ const MaxCostUsdSchema = z.number().positive("maxCostUsd must be positive").fini
 const AgentImageSchema = z
 	.string()
 	.min(1, "agentImage must be non-empty if provided")
-	.max(512, "agentImage must be a container image reference (registry/repo:tag)");
+	.max(
+		512,
+		"agentImage must be a container image reference (registry/repo:tag)",
+	);
 
 const ThinkingEffortSchema = z.enum(["off", "none", "low", "medium", "high"]);
 export type ThinkingEffort = z.infer<typeof ThinkingEffortSchema>;
@@ -345,19 +367,21 @@ const CronTriggerSchema = z
 
 export const TriggerSchema = z.discriminatedUnion("kind", [CronTriggerSchema]);
 
-export const TriggersConfigSchema = z.array(TriggerSchema).superRefine((list, ctx) => {
-	const seen = new Set<string>();
-	list.forEach((entry, index) => {
-		if (seen.has(entry.id)) {
-			ctx.addIssue({
-				code: "custom",
-				path: [index, "id"],
-				message: `duplicate trigger id "${entry.id}"`,
-			});
-		}
-		seen.add(entry.id);
+export const TriggersConfigSchema = z
+	.array(TriggerSchema)
+	.superRefine((list, ctx) => {
+		const seen = new Set<string>();
+		list.forEach((entry, index) => {
+			if (seen.has(entry.id)) {
+				ctx.addIssue({
+					code: "custom",
+					path: [index, "id"],
+					message: `duplicate trigger id "${entry.id}"`,
+				});
+			}
+			seen.add(entry.id);
+		});
 	});
-});
 
 export type CronTrigger = z.infer<typeof CronTriggerSchema>;
 export type Trigger = z.infer<typeof TriggerSchema>;
@@ -368,12 +392,21 @@ export const DefaultsConfigSchema = z
 		defaultRole: RoleNameSchema.optional(),
 		defaultActionRole: RoleNameSchema.optional(),
 		defaultActionModel: z.string().min(1).optional(),
-		defaultBranch: z.string().min(1, "defaultBranch must be non-empty if provided").optional(),
+		defaultBranch: z
+			.string()
+			.min(1, "defaultBranch must be non-empty if provided")
+			.optional(),
 		defaultPrompt: PromptSchema.optional(),
 		// warren-618b: free-text provider/model defaults applied at spawn time the
 		// same way per-run overrides are (operator > project default > frontmatter).
-		defaultProvider: z.string().min(1, "defaultProvider must be non-empty if provided").optional(),
-		defaultModel: z.string().min(1, "defaultModel must be non-empty if provided").optional(),
+		defaultProvider: z
+			.string()
+			.min(1, "defaultProvider must be non-empty if provided")
+			.optional(),
+		defaultModel: z
+			.string()
+			.min(1, "defaultModel must be non-empty if provided")
+			.optional(),
 		defaultThinking: ThinkingEffortSchema.optional(),
 		// warren-9993: run branch prefix; spawnRun composes `${prefix}/${run.id}`.
 		// Precedence: project default > WARREN_RUN_BRANCH_PREFIX env > built-in
@@ -408,7 +441,10 @@ export const DefaultsConfigSchema = z
 		ciFixer: CiFixerConfigSchema.optional(),
 		// warren-3db0: opt-in closed-loop healer; missing block → intake skips it.
 		healer: HealerConfigSchema.optional(),
-		qualityGate: z.string().min(1, "qualityGate must be non-empty if provided").optional(),
+		qualityGate: z
+			.string()
+			.min(1, "qualityGate must be non-empty if provided")
+			.optional(),
 		// warren-540f: free-text per-project onboarding context injected into
 		// every dispatched agent's prompt by composeDispatchPrompt. This is where
 		// "this is a Python repo, the gate is pytest -q, there is no tracker here"
@@ -445,7 +481,10 @@ export function parseTriggersConfig(raw: unknown): ParseResult<TriggersConfig> {
 	if (parsed.success) {
 		return { ok: true, value: parsed.data };
 	}
-	return { ok: false, message: parsed.error.issues.map(formatZodIssue).join("; ") };
+	return {
+		ok: false,
+		message: parsed.error.issues.map(formatZodIssue).join("; "),
+	};
 }
 
 export function parseDefaultsConfig(raw: unknown): ParseResult<DefaultsConfig> {
@@ -458,7 +497,10 @@ export function parseDefaultsConfig(raw: unknown): ParseResult<DefaultsConfig> {
 	if (parsed.success) {
 		return { ok: true, value: parsed.data };
 	}
-	return { ok: false, message: parsed.error.issues.map(formatZodIssue).join("; ") };
+	return {
+		ok: false,
+		message: parsed.error.issues.map(formatZodIssue).join("; "),
+	};
 }
 
 /**
@@ -478,7 +520,9 @@ export function parseConfigFile(raw: unknown): ParseResult<DefaultsConfig> {
  * as "no preview configured" (parses to `null`) so operators can keep the
  * file around as documentation without forcing a placeholder.
  */
-export function parsePreviewFile(raw: unknown): ParseResult<PreviewConfig | null> {
+export function parsePreviewFile(
+	raw: unknown,
+): ParseResult<PreviewConfig | null> {
 	if (raw === undefined || raw === null) {
 		return { ok: true, value: null };
 	}
@@ -486,7 +530,10 @@ export function parsePreviewFile(raw: unknown): ParseResult<PreviewConfig | null
 	if (parsed.success) {
 		return { ok: true, value: parsed.data };
 	}
-	return { ok: false, message: parsed.error.issues.map(formatZodIssue).join("; ") };
+	return {
+		ok: false,
+		message: parsed.error.issues.map(formatZodIssue).join("; "),
+	};
 }
 
 /**
