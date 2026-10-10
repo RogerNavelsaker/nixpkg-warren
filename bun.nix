@@ -69,9 +69,9 @@
     url = "https://registry.npmjs.org/@opentelemetry/semantic-conventions/-/semantic-conventions-1.43.0.tgz";
     hash = "sha512-eSYWTm620tTk45EKSedaUL8MFYI8hW164hIXsgIHyxu3VobUB3fFCu5t0hQby6OoWRPsG1KkKUG2M5UadiLiVg==";
   };
-  "@os-eco/warren-cli@0.19.2" = fetchurl {
-    url = "https://registry.npmjs.org/@os-eco/warren-cli/-/warren-cli-0.19.2.tgz";
-    hash = "sha512-BApmYwtRkP4CvJOF+P2phTlvGEJJ3t1PS9cLf00ZvL0526Qbi6TZInJ4VSXb5RB6dtORWFmSdSYQfZqOqjHuSQ==";
+  "@os-eco/warren-cli@0.19.3" = fetchurl {
+    url = "https://registry.npmjs.org/@os-eco/warren-cli/-/warren-cli-0.19.3.tgz";
+    hash = "sha512-pqzl7vD+6UEK8c6QvHRD3Ty8suHpEkhasFJwJ+uJ+/qxvZS9WRUtimkrZalIZTjs3fU3rXioIWr3h94eaQPOyQ==";
   };
   "@pinojs/redact@0.4.0" = fetchurl {
     url = "https://registry.npmjs.org/@pinojs/redact/-/redact-0.4.0.tgz";

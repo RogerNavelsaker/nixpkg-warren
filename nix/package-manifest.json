@@ -4,7 +4,7 @@
     "repo": "warren",
     "npmName": "@os-eco/warren-cli",
     "version": "0.19.3",
-    "packageRevision": 5
+    "packageRevision": 6
   },
   "binary": {
     "name": "warren",

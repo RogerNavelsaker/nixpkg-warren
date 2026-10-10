@@ -56,7 +56,10 @@ import type { IssueTracker } from "../../tracker/contract.ts";
 import { withAutomaticRetryAdmission } from "../../triggers/automatic-capacity.ts";
 import type { WarrenConfigCache } from "../../warren-config/index.ts";
 import type { RunEventBroker } from "../events.ts";
-import { type LifecycleExtension, WARREN_EXT_PROTOCOL } from "../lifecycle-bus.ts";
+import {
+	type LifecycleExtension,
+	WARREN_EXT_PROTOCOL,
+} from "../lifecycle-bus.ts";
 import { spawnRun } from "../spawn/index.ts";
 import type { SpawnLogger } from "../spawn/types.ts";
 import type { BridgeRegistry } from "../stream/types.ts";
@@ -287,6 +290,17 @@ async function maybeRetryProviderError(
 	// two: the signal is already in `events`, the bound reads chain rows.
 	const signal = lastProviderErrorSignal(events);
 	if (signal === null) return;
+	const workAlreadyPushed =
+		run.prUrl !== null ||
+		events.some((event) => event.kind === "reap.branch_pushed");
+	if (workAlreadyPushed) {
+		await emit(runId, PROVIDER_RETRY_EVENTS.retrySkipped, {
+			verdict: "work_already_pushed",
+			commitsAhead: run.commitsAhead,
+			prUrl: run.prUrl,
+		});
+		return;
+	}
 	// The bound: a lineage that has spent its attempts stops here, on the
 	// run that reached the cap, rather than returning bare.
 	const attempts = await countProviderRetries(input.repos, run, events);
@@ -301,7 +315,11 @@ async function maybeRetryProviderError(
 		});
 		return;
 	}
-	const verdict = classifyProviderError(signal.message, signal.httpStatus, signal.upstreamBody);
+	const verdict = classifyProviderError(
+		signal.message,
+		signal.httpStatus,
+		signal.upstreamBody,
+	);
 	if (verdict !== "transient") {
 		input.logger.info(
 			{ runId, verdict, providerError: signal.message },
@@ -317,9 +335,12 @@ async function maybeRetryProviderError(
 	await withAutomaticRetryAdmission(
 		input.repos.runs,
 		run.trigger,
-		() => dispatchProviderRetry(input, now, { ...run, projectId }, signal.message),
 		() =>
-			emit(runId, PROVIDER_RETRY_EVENTS.retrySkipped, { verdict: "automatic_admission_denied" }),
+			dispatchProviderRetry(input, now, { ...run, projectId }, signal.message),
+		() =>
+			emit(runId, PROVIDER_RETRY_EVENTS.retrySkipped, {
+				verdict: "automatic_admission_denied",
+			}),
 		now(),
 	);
 }
@@ -348,9 +369,12 @@ async function countProviderRetries(
 	let events: readonly EventRow[] = failedEvents;
 	const seen = new Set<string>([failed.id]);
 	while (current !== null && attempts < MAX_PROVIDER_RETRIES) {
-		const stamped = events.some((e) => e.kind === PROVIDER_RETRY_EVENTS.spawnRetry);
+		const stamped = events.some(
+			(e) => e.kind === PROVIDER_RETRY_EVENTS.spawnRetry,
+		);
 		if (stamped) attempts += 1;
-		const parentId: string | null = current.retryOf ?? (stamped ? current.parentRunId : null);
+		const parentId: string | null =
+			current.retryOf ?? (stamped ? current.parentRunId : null);
 		if (parentId === null || seen.has(parentId)) break;
 		seen.add(parentId);
 		current = await repos.runs.get(parentId);
@@ -422,16 +446,25 @@ async function dispatchProviderRetry(
 			projectsConfig: input.projectsConfig,
 			projectSpawn: input.projectSpawn,
 			gitCredential,
-			...(input.warrenConfigs !== undefined ? { warrenConfigs: input.warrenConfigs } : {}),
+			...(input.warrenConfigs !== undefined
+				? { warrenConfigs: input.warrenConfigs }
+				: {}),
 			...(input.runBranchPrefixDefault !== undefined
 				? { runBranchPrefixDefault: input.runBranchPrefixDefault }
 				: {}),
 			...(input.seedsCli !== undefined ? { seedsCli: input.seedsCli } : {}),
-			...(input.issueTracker !== undefined ? { issueTracker: input.issueTracker } : {}),
+			...(input.issueTracker !== undefined
+				? { issueTracker: input.issueTracker }
+				: {}),
 			logger: input.logger,
 			now,
 		});
-		input.bridges.start(result.run.id, result.sandboxRun.id, result.sandbox.id, result.run.mode);
+		input.bridges.start(
+			result.run.id,
+			result.sandboxRun.id,
+			result.sandbox.id,
+			result.run.mode,
+		);
 		// Lineage on BOTH streams: the successor names its origin (this is
 		// also the single-retry bound marker), the origin names its successor.
 		await emit(result.run.id, PROVIDER_RETRY_EVENTS.spawnRetry, {
@@ -449,7 +482,9 @@ async function dispatchProviderRetry(
 	} catch (err) {
 		const reason = err instanceof Error ? err.message : String(err);
 		input.logger.error({ runId: run.id, reason }, "provider-retry.failed");
-		await emit(run.id, PROVIDER_RETRY_EVENTS.retryFailed, { error: reason }).catch(() => {});
+		await emit(run.id, PROVIDER_RETRY_EVENTS.retryFailed, {
+			error: reason,
+		}).catch(() => {});
 	}
 }
 
@@ -462,7 +497,9 @@ interface ProviderErrorEventSignal {
 	readonly upstreamBody: string | null;
 }
 
-function lastProviderErrorSignal(events: readonly EventRow[]): ProviderErrorEventSignal | null {
+function lastProviderErrorSignal(
+	events: readonly EventRow[],
+): ProviderErrorEventSignal | null {
 	let signal: ProviderErrorEventSignal | null = null;
 	for (const event of events) {
 		if (event.kind !== "reap.provider_error") continue;
@@ -471,11 +508,19 @@ function lastProviderErrorSignal(events: readonly EventRow[]): ProviderErrorEven
 			httpStatus?: unknown;
 			upstreamBody?: unknown;
 		} | null;
-		if (payload !== null && typeof payload.message === "string" && payload.message.length > 0) {
+		if (
+			payload !== null &&
+			typeof payload.message === "string" &&
+			payload.message.length > 0
+		) {
 			signal = {
 				message: payload.message,
-				httpStatus: typeof payload.httpStatus === "number" ? payload.httpStatus : null,
-				upstreamBody: typeof payload.upstreamBody === "string" ? payload.upstreamBody : null,
+				httpStatus:
+					typeof payload.httpStatus === "number" ? payload.httpStatus : null,
+				upstreamBody:
+					typeof payload.upstreamBody === "string"
+						? payload.upstreamBody
+						: null,
 			};
 		}
 	}
