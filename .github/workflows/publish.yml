@@ -57,6 +57,26 @@ jobs:
           docker load --input /tmp/warren-agent-image
           docker run --rm warren-agent:latest pi --version
 
+      - name: Smoke test agent toolchain
+        run: |
+          docker run --rm --entrypoint bash warren-agent:latest -c '
+            set -eu
+            for command in python3 pip pip3 uv node npm bun sd seeds mulch ml canopy cn sapling sp plot pt pi sed awk which diff ldd strings rg grep; do
+              command -v "$command" >/dev/null || { echo "missing required command: $command" >&2; exit 1; }
+            done
+            python3 --version
+            pip3 --version
+            uv --version
+            node --version
+            npm --version
+            bun --version
+            pi --version
+            sp version --json
+            python3 -m venv /tmp/warren-agent-venv
+            /tmp/warren-agent-venv/bin/python -m pip --version
+            rm -rf /tmp/warren-agent-venv
+          '
+
       - name: Generate Warren image tags
         id: meta-warren
         uses: docker/metadata-action@v5

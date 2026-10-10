@@ -33,6 +33,18 @@
     mulch.inputs.nixpkgs.follows = "nixpkgs";
     mulch.inputs.bun2nix.follows = "bun2nix";
 
+    canopy.url = "github:RogerNavelsaker/nixpkg-canopy";
+    canopy.inputs.nixpkgs.follows = "nixpkgs";
+    canopy.inputs.bun2nix.follows = "bun2nix";
+
+    plot.url = "github:RogerNavelsaker/nixpkg-plot";
+    plot.inputs.nixpkgs.follows = "nixpkgs";
+    plot.inputs.bun2nix.follows = "bun2nix";
+
+    sapling.url = "github:RogerNavelsaker/nixpkg-sapling";
+    sapling.inputs.nixpkgs.follows = "nixpkgs";
+    sapling.inputs.bun2nix.follows = "bun2nix";
+
     terrarium.url = "github:RogerNavelsaker/nixpkg-terrarium";
     terrarium.inputs.nixpkgs.follows = "nixpkgs";
     terrarium.inputs.bun2nix.follows = "bun2nix";
@@ -49,6 +61,9 @@
     pi-coding-agent,
     seeds,
     mulch,
+    canopy,
+    plot,
+    sapling,
     terrarium,
     trellis,
     ...
@@ -71,6 +86,9 @@
       packages = forAllSystems ({ pkgs }:
         let
           seedsCli = seeds.packages.${pkgs.system}.default.sd;
+          canopyCli = canopy.packages.${pkgs.system}.default;
+          plotCli = plot.packages.${pkgs.system}.default;
+          saplingCli = sapling.packages.${pkgs.system}.default;
           warrenPackages = pkgs.callPackage ./nix/package.nix {
             sd = seedsCli;
           };
@@ -80,8 +98,16 @@
           };
           agentImage = pkgs.callPackage ./nix/agent-docker.nix {
             piPackage = pi-coding-agent.packages.${pkgs.system}.default.pi;
-            seedsPackage = seeds.packages.${pkgs.system}.default.sd;
-            mulchPackage = mulch.packages.${pkgs.system}.default.ml;
+            seedsPackage = seeds.packages.${pkgs.system}.default;
+            seedsAliasPackage = seeds.packages.${pkgs.system}.default.sd;
+            mulchPackage = mulch.packages.${pkgs.system}.default;
+            mulchAliasPackage = mulch.packages.${pkgs.system}.default.ml;
+            canopyPackage = canopyCli;
+            canopyAliasPackage = canopy.packages.${pkgs.system}.default.cn;
+            plotPackage = plotCli;
+            plotAliasPackage = plot.packages.${pkgs.system}.default.pt;
+            saplingPackage = saplingCli;
+            saplingAliasPackage = sapling.packages.${pkgs.system}.default.sp;
             terrariumPackage = terrarium.packages.${pkgs.system}.default.tr;
             trellisPackage = trellis.packages.${pkgs.system}.default.tl;
           };
