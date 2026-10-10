@@ -52,6 +52,18 @@ describe("automatic provider retry admission", () => {
 		});
 	});
 
+	test("does not retry when reap recorded pull request", async () => {
+		const fixture = await setup({ trigger: "ci-fixer" });
+		await fixture.repos.runs.setPrUrl(fixture.runId, "https://github.com/x/y/pull/1");
+		const { spawn } = await fire(fixture, { now: () => new Date("2026-06-01T00:00:00.000Z") });
+		expect(spawn.calls).toHaveLength(0);
+		const events = await fixture.repos.events.listByRun(fixture.runId);
+		const skipped = events.find((event) => event.kind === PROVIDER_RETRY_EVENTS.retrySkipped);
+		expect(skipped?.payloadJson).toMatchObject({
+			verdict: "work_already_pushed",
+			prUrl: "https://github.com/x/y/pull/1",
+		});
+	});
 	test("does not retry an automatic run outside the local-model window", async () => {
 		const fixture = await setup({ trigger: "cron" });
 		const { spawn } = await fire(fixture, {
