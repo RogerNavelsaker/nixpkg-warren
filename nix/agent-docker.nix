@@ -15,9 +15,28 @@
   cacert,
   tzdata,
   bun,
+  python3,
+  python3Packages,
+  uv,
+  nodejs_22,
+  gnused,
+  gawk,
+  which,
+  diffutils,
+  glibc,
+  binutils,
+  ripgrep,
   piPackage,
   seedsPackage,
+  seedsAliasPackage,
   mulchPackage,
+  mulchAliasPackage,
+  canopyPackage,
+  canopyAliasPackage,
+  saplingPackage,
+  saplingAliasPackage,
+  plotPackage,
+  plotAliasPackage,
   terrariumPackage,
   trellisPackage,
 }:
@@ -41,9 +60,27 @@ let
     cacert
     tzdata
     bun
+    python3
+    python3Packages.pip
+    uv
+    nodejs_22
+    gnused
+    gawk
+    which
+    diffutils
+    binutils
+    ripgrep
     piPackage
     seedsPackage
+    seedsAliasPackage
     mulchPackage
+    mulchAliasPackage
+    canopyPackage
+    canopyAliasPackage
+    saplingPackage
+    saplingAliasPackage
+    plotPackage
+    plotAliasPackage
     terrariumPackage
     trellisPackage
   ];
@@ -62,6 +99,7 @@ dockerTools.buildLayeredImage {
 
   contents = [
     runtime
+    glibc.bin
     cacert
     tzdata
     etcUsers
@@ -74,7 +112,7 @@ dockerTools.buildLayeredImage {
     Env = [
       "HOME=/workspace"
       "PI_CODING_AGENT_HOME=/workspace/.pi"
-      "PATH=/bin:/usr/bin:${runtime}/bin"
+      "PATH=/bin:/usr/bin:${runtime}/bin:${glibc.bin}/bin"
       "SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt"
       "NIX_SSL_CERT_FILE=${cacert}/etc/ssl/certs/ca-bundle.crt"
     ];

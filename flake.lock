@@ -23,6 +23,29 @@
         "type": "github"
       }
     },
+    "canopy": {
+      "inputs": {
+        "bun2nix": [
+          "bun2nix"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791452999,
+        "narHash": "sha256-Upc5CnZfoalpCJvR6AQ3TPy12YVzBhgjWHfuiYGFkCM=",
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-canopy",
+        "rev": "c12f667713c890483453b40a5d807567f6dd4252",
+        "type": "github"
+      },
+      "original": {
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-canopy",
+        "type": "github"
+      }
+    },
     "flake-parts": {
       "inputs": {
         "nixpkgs-lib": [
@@ -106,15 +129,64 @@
         "type": "github"
       }
     },
+    "plot": {
+      "inputs": {
+        "bun2nix": [
+          "bun2nix"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791453028,
+        "narHash": "sha256-dDU8uOEObo5cxccYZkhsEvc/wK14lqi2PT/Phi4L4is=",
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-plot",
+        "rev": "c1af0ea29fad379b1eadaecbd08c440c2041bbf5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-plot",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "bun2nix": "bun2nix",
+        "canopy": "canopy",
         "mulch": "mulch",
         "nixpkgs": "nixpkgs",
         "pi-coding-agent": "pi-coding-agent",
+        "plot": "plot",
+        "sapling": "sapling",
         "seeds": "seeds",
         "terrarium": "terrarium",
         "trellis": "trellis"
+      }
+    },
+    "sapling": {
+      "inputs": {
+        "bun2nix": [
+          "bun2nix"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1791629312,
+        "narHash": "sha256-Bgr83RnMw9yOO1We2OL1qG1AZhsQ40gZiK67KQ7Aupo=",
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-sapling",
+        "rev": "fb73667ddfb40b27964ee047d6e9d0ec165796cb",
+        "type": "github"
+      },
+      "original": {
+        "owner": "RogerNavelsaker",
+        "repo": "nixpkg-sapling",
+        "type": "github"
       }
     },
     "seeds": {
